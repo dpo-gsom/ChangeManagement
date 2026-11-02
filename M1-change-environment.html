@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Что происходит и что делать</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  /* ─── Экран: фиксированная высота, чтобы iframe не прыгал ─── */
+  .screen { min-height: 820px; }
+  .screen__body { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+
+  /* ─── Ситуация ─── */
+  .case-card { min-height: 128px; padding: 0 2px; }
+  .case-title { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--dark); line-height: 1.25; margin-bottom: 6px; }
+  .case-text { font-size: 14px; line-height: 1.6; color: var(--slate); }
+  .step-label { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--red); margin-bottom: 4px; }
+
+  /* ─── Варианты ─── */
+  .options { display: flex; flex-direction: column; gap: 8px; }
+  .opt { padding: 12px 14px; font-size: 14px; line-height: 1.45; color: var(--dark); }
+  .opt--locked { cursor: default; pointer-events: none; }
+  .opt__name { font-weight: 700; }
+  .opt__desc { font-size: 13px; color: var(--slate); margin-top: 2px; }
+
+  /* ─── Зона разбора ─── */
+  .fb-zone { min-height: 150px; }
+  .fb-zone .hint {
+    font-size: 13px;
+    color: var(--slate);
+    text-align: center;
+    padding: 18px 10px;
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius-md);
+  }
+  .trait-line { margin-top: 7px; }
+  .trait-line .badge { margin-right: 6px; vertical-align: 1px; }
+
+  /* ─── Шпаргалка на вводном экране ─── */
+  .toolset-preview { display: flex; flex-direction: column; gap: 6px; }
+  .toolset-preview .opt { cursor: default; }
+
+  /* ─── Итог ─── */
+  .sum-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .sum-row:last-child { border-bottom: none; }
+  .sum-row__name { flex: 1; color: var(--dark); line-height: 1.35; }
+  .sum-row__name small { display: block; font-size: 12px; color: var(--slate); }
+  .mark { width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+  .mark--ok   { background: var(--green-bg); border: 1.5px solid var(--green); color: var(--green); }
+  .mark--warn { background: var(--amber-bg); border: 1.5px solid var(--amber); color: var(--amber); }
+  .mark--bad  { background: var(--red-bg);   border: 1.5px solid var(--red);   color: var(--red);   }
+  .sum-head { display: flex; gap: 10px; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--slate); }
+  .sum-head span:first-child { flex: 1; }
+  .sum-head span { width: auto; }
+  .sum-verdict { font-size: 14px; line-height: 1.65; color: var(--slate); }
+  .sum-verdict b { color: var(--dark); }
+
+  @media (max-width: 560px) {
+    .screen { min-height: 1030px; }
+    .case-card { min-height: 190px; }
+    .fb-zone { min-height: 220px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script src="common.js"></script>
+<script>
+/* =========================================================
+   Что происходит и что делать: среда, в которой идут изменения
+   Модуль 1 · шесть ситуаций, в каждой два шага:
+   (1) на чём руководителю сделать акцент (блок «Переход от VUCA к BANI»),
+   (2) какой набор инструментов подходит (блок «Практические рекомендации»)
+   ========================================================= */
+
+var TOOLSETS = {
+  usual:  { name: 'Привычный набор инструментов', desc: 'Для условий стабильности.' },
+  agile:  { name: 'Agile-инструменты', desc: 'Когда разрушаются привычные ориентиры.' },
+  crisis: { name: 'Антикризисное управление', desc: 'Новые инструменты, штабные структуры, управление по слабым сигналам — в ситуации хаоса и непостижимых событий.' }
+};
+var TOOL_ORDER = ['usual', 'agile', 'crisis'];
+
+/* level: ok — верно, warn — допустимо, но не лучший вариант, bad — неверно */
+var CASES = [
+  {
+    title: 'Единственный поставщик',
+    text: 'Завод бытовой техники десять лет закупал моторы у одного поставщика: поставки приходили вовремя, брака почти не было. В понедельник поставщик объявил, что закрывается. Моторов на складе — на три недели, других поставщиков никто не искал: «Зачем, всё же работало».',
+    trait: 'Хрупкость',
+    why: 'система выглядела надёжной ровно до того дня, когда обвалилась.',
+    options: [
+      { t: 'Собрать то, на что можно опереться прямо сейчас: запас на складе, опытных снабженцев, давних партнёров, — и строить план от этого', level: 'ok',
+        fb: 'Когда система обваливается, руководителю нужно опереться на накопленный потенциал и островки устойчивости — то, что у компании точно есть и продолжает работать.' },
+      { t: 'Сразу перестроить всю систему закупок: найти по два новых поставщика на каждую позицию', level: 'bad',
+        fb: 'Пересмотр закупок понадобится, но не сейчас и не целиком: за три недели всё не перестроить, а силы уйдут не на главное. Сначала — опереться на то, что у компании уже есть.' },
+      { t: 'Подождать пару недель: возможно, поставщика кто-то купит и поставки продолжатся', level: 'bad',
+        fb: 'Ожидание съест весь запас. Хрупкая система сама не восстанавливается — опираться нужно на то, что у компании есть уже сейчас.' }
+    ],
+    tool: 'agile',
+    toolFb: {
+      usual:  { level: 'bad',  fb: 'План закупок построен на поставщике, которого больше нет. Привычный ориентир разрушен — стабильности, для которой подходит привычный набор, здесь нет.' },
+      agile:  { level: 'ok',   fb: 'Привычный ориентир — надёжный поставщик — разрушен, но что случилось, понятно. Это ситуация для agile-инструментов.' },
+      crisis: { level: 'warn', fb: 'Ситуация тяжёлая, но не непостижимая: понятно, что случилось и что нужно делать. Антикризисное управление нужно в хаосе и при событиях, которые не удаётся объяснить.' }
+    }
+  },
+  {
+    title: 'Слияние',
+    text: 'Банк объявил о слиянии с другим банком. Сокращений не планируют, клиенты, продукты и планы на год остаются прежними. Но в отделе только и разговоров, кого уберут первым: люди перестали предлагать идеи, двое сильных специалистов уже ходят на собеседования.',
+    trait: 'Тревожность',
+    why: 'снаружи ничего не рухнуло, но люди работают в фоновом напряжении, и оно уже меняет их поведение.',
+    options: [
+      { t: 'Разослать сотрудникам цифры: показатели растут, повода для беспокойства нет', level: 'bad',
+        fb: 'Цифры отвечают на вопрос о бизнесе, а людей беспокоит их собственное будущее. Тревогу отчётом не снять — нужен разговор.' },
+      { t: 'Поговорить с каждым лично: спросить, что беспокоит, честно сказать, что известно, а что пока нет, и договориться, когда будут новости', level: 'ok',
+        fb: 'Здесь главное — эмпатия и внимание к людям. Честный разговор не убирает неопределённость, но снижает тревогу и возвращает людям опору.' },
+      { t: 'Не отвлекать людей разговорами о слиянии: загрузить текущими задачами, тревога пройдёт сама', level: 'bad',
+        fb: 'Молчание руководителя тревогу только усиливает: пустоту люди заполняют слухами. Нужен разговор с каждым.' }
+    ],
+    tool: 'usual',
+    toolFb: {
+      usual:  { level: 'ok',  fb: 'Бизнес работает как прежде: клиенты, продукты и планы те же. Тревога — состояние людей, а не среды. Менять нужно то, как руководитель общается с командой, а не набор инструментов.' },
+      agile:  { level: 'bad', fb: 'Привычные ориентиры не разрушены: клиенты, продукты и планы прежние. А перестройка работы добавит людям ещё одну перемену и ещё больше тревоги.' },
+      crisis: { level: 'bad', fb: 'Хаоса нет: бизнес работает как прежде. А штаб для людей, которые и так ждут худшего, — сигнал «у нас кризис», он подтвердит самые мрачные слухи.' }
+    }
+  },
+  {
+    title: 'Сеть кофеен',
+    text: 'Сеть кофеен полгода готовила большую рекламную кампанию — продажи не сдвинулись. А в одной из точек бариста стал рисовать на стаканах смешные рожицы, гость снял об этом ролик, его посмотрели миллион раз, и к этой кофейне выстроилась очередь.',
+    trait: 'Нелинейность',
+    why: 'полгода усилий не дали ничего, а случайный жест одного сотрудника дал больше всей кампании.',
+    options: [
+      { t: 'Удвоить рекламный бюджет: раз кампания не сработала, нужен больший охват', level: 'bad',
+        fb: 'Большое усилие уже не дало результата, и двойное его тоже не гарантирует. В нелинейной среде результат не пропорционален вложениям.' },
+      { t: 'Обязать все точки рисовать рожицы на стаканах по единому стандарту', level: 'warn',
+        fb: 'Идея лежит на поверхности, но в другом месте то же действие может не сработать: гостей зацепила живая история, а не рисунок. Сначала стоит понять, что именно сработало, и проверить это на нескольких точках.' },
+      { t: 'Разобраться, что именно зацепило гостей, и быстро проверить похожие идеи в нескольких точках, не дожидаясь нового годового плана', level: 'ok',
+        fb: 'Маленькое действие дало большой результат. Руководителю важно понять контекст — почему это сработало — и быстро подстраиваться.' }
+    ],
+    tool: 'agile',
+    toolFb: {
+      usual:  { level: 'bad', fb: 'Привычный ориентир «больше вложили — больше получили» перестал работать. Привычный набор рассчитан на стабильность.' },
+      agile:  { level: 'ok',  fb: 'Привычные ориентиры не работают: большое усилие не дало ничего, маленькое — дало много. Это ситуация для agile-инструментов.' },
+      crisis: { level: 'bad', fb: 'Хаоса нет — у сети неожиданный успех, и понятно, где он случился. Антикризисное управление здесь избыточно.' }
+    }
+  },
+  {
+    title: 'Обслуживание лифтов',
+    text: 'Компания обслуживает лифты в жилых домах. Договоры с управляющими компаниями подписаны на пять лет вперёд, требования к обслуживанию не меняются годами, конкуренты давно известны. Новый директор по развитию предлагает «готовиться к турбулентности»: перевести все отделы на двухнедельные циклы и пересматривать планы каждый месяц.',
+    trait: 'Стабильность',
+    why: 'договоры, требования и конкуренты известны надолго вперёд — ни VUCA, ни BANI здесь не про эту компанию.',
+    options: [
+      { t: 'Поддержать директора: мир турбулентный, перестроиться лучше заранее', level: 'bad',
+        fb: 'VUCA и BANI полезны, когда среда действительно такая. Здесь она предсказуема, и перестройка ради перестройки только отнимет силы.' },
+      { t: 'Оставить работающую систему планирования и регламенты, но внимательно следить за изменениями в требованиях и договорах', level: 'ok',
+        fb: 'Среда стабильна — значит, работает то, что уже есть. Внимание к переменам нужно, ломать рабочую систему — нет.' },
+      { t: 'Ничего не менять и не тратить время на наблюдение за рынком: договоры подписаны на пять лет', level: 'warn',
+        fb: 'Менять сейчас действительно нечего, но совсем не смотреть по сторонам опасно: так и появляется хрупкость — система кажется устойчивой до первого обвала.' }
+    ],
+    tool: 'usual',
+    toolFb: {
+      usual:  { level: 'ok',  fb: 'Среда стабильна — значит, подходит привычный набор инструментов.' },
+      agile:  { level: 'bad', fb: 'Agile-инструменты нужны, когда рушатся привычные ориентиры. Здесь ориентиры на месте, и перестройка только отнимет силы.' },
+      crisis: { level: 'bad', fb: 'Кризиса нет. Штаб без кризиса превращается в ещё одно лишнее совещание.' }
+    }
+  },
+  {
+    title: 'Удобрения',
+    text: 'Заказы на удобрения из трёх регионов за месяц упали вдвое. Аналитики проверили цены, погоду, конкурентов — объяснения нет. Два прогноза подряд не сбылись, а совет директоров ждёт план на следующий год.',
+    trait: 'Непостижимость',
+    why: 'объяснить падение не получается, даже проверив все очевидные причины.',
+    options: [
+      { t: 'Заказать глубокое исследование рынка и отложить решения до его результатов', level: 'bad',
+        fb: 'Объяснения может не появиться и через полгода, а решения нужны сейчас. Ждать полной ясности, когда понять происходящее не получается, — тоже решение, и не лучшее.' },
+      { t: 'Составить план на год по последнему прогнозу — совет директоров ждёт', level: 'bad',
+        fb: 'Два прогноза подряд не сбылись. План на третьем даст совету ощущение порядка, но не опору.' },
+      { t: 'Опереться на опыт людей, которые давно работают с этими регионами, принять решение по их ощущениям и быть готовыми быстро его поменять', level: 'ok',
+        fb: 'Когда объяснить происходящее не получается, руководителю приходится действовать, опираясь на интуицию — свою и опытных людей, — и доверять «внутреннему радару». Главное — не ждать полной ясности.' }
+    ],
+    tool: 'crisis',
+    toolFb: {
+      usual:  { level: 'bad',  fb: 'Два прогноза подряд не сбылись — стабильности, на которую рассчитан привычный набор, нет.' },
+      agile:  { level: 'warn', fb: 'Привычные ориентиры действительно разрушены, но здесь хуже: объяснить происходящее не удаётся. При непостижимых событиях нужно осваивать новые инструменты.' },
+      crisis: { level: 'ok',   fb: 'Объяснить происходящее не получается — это непостижимость. Нужно антикризисное управление: штабные структуры и управление по слабым сигналам.' }
+    }
+  },
+  {
+    title: 'Колл-центр туроператора',
+    text: 'Ночью закрыли воздушное пространство над страной, где отдыхают 4 000 клиентов туроператора. Что будет завтра, не знает никто, новости меняются каждые несколько часов. В колл-центр идут сотни звонков от испуганных туристов и родственников, двое сотрудников уже расплакались прямо на смене. Вы руководите колл-центром.',
+    trait: 'Тревожность',
+    why: 'напряжение клиентов и сотрудников сейчас определяет каждый разговор на линии.',
+    options: [
+      { t: 'Выдать сотрудникам единый текст ответов и строго следить, чтобы его соблюдали', level: 'warn',
+        fb: 'Единый текст ответов действительно нужен, но он не поможет людям, которые на пределе. Сначала — внимание к людям: смены, перерывы и руководитель рядом.' },
+      { t: 'Выйти к сотрудникам: признать, что ситуация тяжёлая, ввести короткие смены и перерывы, быть рядом и отвечать на вопросы', level: 'ok',
+        fb: 'Люди работают в сильном напряжении, и от их состояния зависит каждый разговор с клиентом. Эмпатия и внимание руководителя здесь — часть работы, а не дополнение к ней.' },
+      { t: 'Заняться поиском способов вывезти туристов, а настроением сотрудников пусть займётся отдел персонала', level: 'bad',
+        fb: 'Вывоз туристов — задача другой команды. Ваша зона — люди на линии: если они не выдержат, клиенты останутся без ответа.' }
+    ],
+    tool: 'crisis',
+    toolFb: {
+      usual:  { level: 'bad',  fb: 'Что будет завтра, не знает никто, новости меняются каждые несколько часов. Привычный набор рассчитан на стабильность.' },
+      agile:  { level: 'warn', fb: 'Привычные ориентиры действительно разрушены, но это уже хаос: события меняются каждые несколько часов. Здесь нужно антикризисное управление.' },
+      crisis: { level: 'ok',   fb: 'Хаос: что будет завтра, не знает никто, новости меняются каждые несколько часов. Это ситуация для антикризисного управления.' }
+    }
+  }
+];
+
+var state = { screen: 'intro', i: 0, step: 1, answers: [] };
+
+/* ─── Типографика: неразрывные пробелы ─────────────────── */
+
+function nb(s) {
+  for (var k = 0; k < 2; k++) s = s.replace(/(^|[\s>(«"])([а-яёА-ЯЁ]{1,2}) /g, '$1$2 ');
+  return s.replace(/ — /g, ' — ').replace(/(\d) (?=\d|[а-яё₽%])/g, '$1 ');
+}
+
+/* ─── Ответы ────────────────────────────────────────────── */
+
+function answer() {
+  var a = state.answers[state.i] || {};
+  return state.step === 1 ? a.focus : a.tool;
+}
+
+function optLevel(idx) {
+  var c = CASES[state.i];
+  return state.step === 1 ? c.options[idx].level : c.toolFb[TOOL_ORDER[idx]].level;
+}
+
+function optCount() {
+  return state.step === 1 ? CASES[state.i].options.length : TOOL_ORDER.length;
+}
+
+function rightIdx() {
+  var c = CASES[state.i];
+  if (state.step === 2) return TOOL_ORDER.indexOf(c.tool);
+  for (var k = 0; k < c.options.length; k++) if (c.options[k].level === 'ok') return k;
+}
+
+function optInner(idx) {
+  if (state.step === 1) return CASES[state.i].options[idx].t;
+  var ts = TOOLSETS[TOOL_ORDER[idx]];
+  return '<div class="opt__name">' + ts.name + '</div><div class="opt__desc">' + ts.desc + '</div>';
+}
+
+function lockedClass(idx, ans) {
+  var cls = 'card opt opt--locked';
+  if (idx === rightIdx()) return cls + ' card--correct';
+  if (idx === ans) return cls + (optLevel(idx) === 'warn' ? ' card--warning' : ' card--wrong');
+  return cls + ' card--dimmed';
+}
+
+function optionsHtml() {
+  var ans = answer();
+  var h = '<div class="options">';
+  for (var k = 0; k < optCount(); k++) {
+    if (ans === undefined) h += '<div class="card card--interactive opt" data-opt="' + k + '" onclick="pick(' + k + ')">' + optInner(k) + '</div>';
+    else h += '<div class="' + lockedClass(k, ans) + '" data-opt="' + k + '">' + optInner(k) + '</div>';
+  }
+  return h + '</div>';
+}
+
+/* ─── Разбор ────────────────────────────────────────────── */
+
+var FB_CLASS = { ok: 'feedback--success', warn: 'feedback--warning', bad: 'feedback--error' };
+
+function feedbackHtml(ans) {
+  if (ans === undefined) return '<div class="hint">Выберите ответ — здесь появится разбор.</div>';
+  var c = CASES[state.i];
+  var level = optLevel(ans);
+  var head, text, extra = '';
+  if (state.step === 1) {
+    text = c.options[ans].fb;
+    if (level === 'ok') head = 'Верно · ' + c.trait.toLowerCase();
+    else if (level === 'warn') head = 'Допустимо, но не лучший вариант';
+    else head = 'Неверно · ' + c.trait.toLowerCase();
+    extra = '<div class="trait-line"><span class="badge badge--neutral">' + c.trait + '</span>' + c.why.charAt(0).toUpperCase() + c.why.slice(1) + '</div>';
+  } else {
+    text = c.toolFb[TOOL_ORDER[ans]].fb;
+    var right = TOOLSETS[c.tool].name.toLowerCase();
+    if (level === 'ok') head = 'Верно · ' + right;
+    else if (level === 'warn') head = 'Допустимо, но лучше: ' + right;
+    else head = 'Неверно · здесь: ' + right;
+  }
+  return nb('<div class="feedback ' + FB_CLASS[level] + '">'
+    + '<div class="feedback__head">' + head + '</div>'
+    + '<div>' + text + '</div>' + extra
+    + '</div>');
+}
+
+function progressHtml() {
+  var done = state.i * 2 + (state.step - 1);
+  return '<div class="progress">'
+    + '<div class="progress__meta">'
+    +   '<span class="progress__label">Ситуация</span>'
+    +   '<span class="progress__fraction"><em>' + (state.i + 1) + '</em> / ' + CASES.length + '</span>'
+    + '</div>'
+    + '<div class="progress__track"><div class="progress__fill" style="width:' + (done / (CASES.length * 2) * 100) + '%"></div></div>'
+    + '</div>';
+}
+
+/* ─── Экраны ────────────────────────────────────────────── */
+
+function renderIntro() {
+  var tools = '';
+  for (var k = 0; k < TOOL_ORDER.length; k++) {
+    var ts = TOOLSETS[TOOL_ORDER[k]];
+    tools += '<div class="card opt"><div class="opt__name">' + ts.name + '</div><div class="opt__desc">' + ts.desc + '</div></div>';
+  }
+  return '<div class="screen__body">'
+    +   '<h1 class="page-title">Что происходит<span>и что делать</span></h1>'
+    +   '<div class="divider"></div>'
+    +   '<p class="lead-text">Шесть ситуаций из жизни компаний. В каждой два шага: сначала решите, на чём руководителю сделать акцент, затем — какой набор инструментов подходит.</p>'
+    +   '<p class="lead-text mt-sm">Наборы инструментов:</p>'
+    +   '<div class="toolset-preview mt-xs">' + tools + '</div>'
+    + '</div>'
+    + '<button class="btn btn--primary btn--full mt-md" onclick="start()">Начать →</button>';
+}
+
+function renderQuestion() {
+  var c = CASES[state.i];
+  var ans = answer();
+  var last = (state.i === CASES.length - 1);
+  var btn = state.step === 1 ? 'Далее: инструменты →' : (last ? 'К итогам →' : 'Следующая ситуация →');
+  return '<div class="screen__body">'
+    +   progressHtml()
+    +   '<div class="case-card mt-sm">'
+    +     '<div class="case-title">' + c.title + '</div>'
+    +     '<p class="case-text">' + c.text + '</p>'
+    +   '</div>'
+    +   '<div class="mt-sm">'
+    +     '<div class="step-label">Шаг ' + state.step + ' из 2</div>'
+    +     '<div class="question-text">' + (state.step === 1 ? 'На чём руководителю сделать акцент?' : 'Какой набор инструментов подходит?') + '</div>'
+    +   '</div>'
+    +   '<div id="optbox" class="mt-sm">' + optionsHtml() + '</div>'
+    +   '<div id="fbbox" class="fb-zone mt-sm">' + feedbackHtml(ans) + '</div>'
+    + '</div>'
+    + '<div class="nav-bar">'
+    +   '<button id="next-btn" class="btn btn--primary btn--full" onclick="next()"' + (ans === undefined ? ' disabled' : '') + '>' + btn + '</button>'
+    + '</div>';
+}
+
+var MARK = { ok: '✓', warn: '~', bad: '✕' };
+
+function renderFinal() {
+  var rows = '', missFocus = [], missTool = [];
+  for (var n = 0; n < CASES.length; n++) {
+    var c = CASES[n], a = state.answers[n];
+    var lf = c.options[a.focus].level, lt = c.toolFb[TOOL_ORDER[a.tool]].level;
+    if (lf !== 'ok' && missFocus.indexOf(c.trait.toLowerCase()) < 0) missFocus.push(c.trait.toLowerCase());
+    if (lt !== 'ok') missTool.push(c.title.toLowerCase());
+    rows += '<div class="sum-row">'
+      + '<div class="sum-row__name">' + c.title + '<small>' + c.trait + ' · ' + TOOLSETS[c.tool].name.toLowerCase() + '</small></div>'
+      + '<span class="mark mark--' + lf + '">' + MARK[lf] + '</span>'
+      + '<span class="mark mark--' + lt + '">' + MARK[lt] + '</span>'
+      + '</div>';
+  }
+  var verdict = missFocus.length === 0
+    ? 'На чём сделать акцент, вы определяете <b>уверенно</b>.'
+    : 'С акцентом стоит ещё раз присмотреться к ситуациям, где была <b>' + missFocus.join(', ') + '</b>.';
+  verdict += ' ' + (missTool.length === 0
+    ? 'Набор инструментов под среду вы <b>подбираете точно</b>.'
+    : 'С инструментами расходятся ситуации: <b>' + missTool.join(', ') + '</b>.');
+  return '<div class="screen__body">'
+    +   '<h2 class="section-title">Ваш разбор</h2>'
+    +   '<div class="divider"></div>'
+    +   '<div class="sum-head"><span>Ситуация</span><span>Акцент · инструменты</span></div>'
+    +   rows
+    +   '<p class="sum-verdict mt-sm">' + verdict + '</p>'
+    +   '<div class="legend-box">'
+    +     '<span class="legend-tag">Итог</span>'
+    +     'VUCA и BANI полезны не как ярлыки, а как два вопроса: <strong>что происходит вокруг компании</strong> и <strong>как это ощущают люди</strong>. Ответ на первый подсказывает набор инструментов, на второй — на чём сделать акцент. Посмотрите на две ситуации с тревожностью: в банке бизнес работал как прежде и инструменты менять было не нужно, а в колл-центре тревога была частью хаоса.'
+    +   '</div>'
+    + '</div>'
+    + '<button class="btn btn--secondary btn--full" onclick="restart()">Пройти заново</button>';
+}
+
+/* ─── Управление ────────────────────────────────────────── */
+
+function render() {
+  var body;
+  if (state.screen === 'intro') body = renderIntro();
+  else if (state.screen === 'q') body = renderQuestion();
+  else body = renderFinal();
+  document.getElementById('app').innerHTML = '<div class="page-wrap--compact screen anim-fade-up">' + nb(body) + '</div>';
+  notifyHeight();
+}
+
+function start() {
+  state.screen = 'q';
+  state.i = 0;
+  state.step = 1;
+  state.answers = [];
+  render();
+}
+
+/* Выбор обновляет варианты и разбор на месте: экран не вздрагивает */
+function pick(idx) {
+  if (answer() !== undefined) return;
+  var a = state.answers[state.i] || (state.answers[state.i] = {});
+  if (state.step === 1) a.focus = idx; else a.tool = idx;
+  var opts = document.querySelectorAll('#optbox [data-opt]');
+  for (var k = 0; k < opts.length; k++) {
+    opts[k].className = lockedClass(k, idx);
+    opts[k].onclick = null;
+  }
+  document.getElementById('fbbox').innerHTML = feedbackHtml(idx);
+  document.getElementById('next-btn').disabled = false;
+  notifyHeight();
+}
+
+function next() {
+  if (state.step === 1) state.step = 2;
+  else if (state.i === CASES.length - 1) state.screen = 'final';
+  else { state.i++; state.step = 1; }
+  render();
+}
+
+function restart() {
+  state.screen = 'intro';
+  state.i = 0;
+  state.step = 1;
+  state.answers = [];
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
